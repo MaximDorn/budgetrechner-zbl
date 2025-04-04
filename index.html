@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Budgetrechner § 45 SGB XI</title>
+
+  <!-- PWA Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#005a87">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1, h2, h3 {
+      color: #005a87;
+    }
+    .form-group {
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 15px;
+    }
+    .form-group label {
+      font-weight: bold;
+    }
+    input, select, textarea {
+      padding: 4px;
+      border: 1px solid #aaa;
+      border-radius: 3px;
+      box-sizing: border-box;
+    }
+    input[type="text"], select {
+      width: 120px;
+    }
+    textarea {
+      width: 100%;
+      resize: vertical;
+    }
+    button {
+      background-color: #005a87;
+      color: white;
+      border: 1px solid #003e5f;
+      padding: 6px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background-color: #003e5f;
+    }
+    .button-group {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    .info-box {
+      background-color: #e6f7ff;
+      border-left: 4px solid #1890ff;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    .warning {
+      background-color: #fff7e6;
+      border-left: 4px solid #fa8c16;
+    }
+    .budget-positive {
+      color: green;
+    }
+    .budget-negative {
+      color: red;
+    }
+    table, th, td {
+      border: 1px solid #888;
+    }
+    th, td {
+      padding: 8px;
+      text-align: right;
+    }
+    th {
+      background-color: #b8cce4;
+      color: #000;
+      text-align: center;
+    }
+    tbody tr:nth-child(odd) {
+      background-color: #f2f2d3;
+    }
+    tfoot tr {
+      background-color: #f2f2d3;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Budgetrechner für Betreuungs- und Entlastungsleistungen</h1>
+  <p>Nach § 45 SGB XI</p>
+
+  <div class="info-box">
+    <p><strong>Wichtige Informationen:</strong></p>
+    <ul>
+      <li>Bis 31.12.2024: Budget 125€ monatlich (1.500€ jährlich)</li>
+      <li>Ab 01.01.2025: Budget 131€ monatlich (1.572€ jährlich)</li>
+      <li>Budget verfällt am 30.06. des Folgejahres, wenn es nicht genutzt wurde</li>
+    </ul>
+  </div>  <div class="seitennavigation" style="display: flex;">
+    <div class="schritte" style="width: 200px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin-right: 20px;">
+      <h3>Schritte</h3>
+      <ul style="list-style-type: none; padding: 0;">
+        <li><a href="#" id="budget-anlegen-link">Budget anlegen / bearbeiten</a></li>
+        <li><a href="#" id="budgetuebersicht-link" class="aktiv">Budgetübersicht</a></li>
+      </ul>
+    </div>
+
+    <div style="flex-grow: 1;">
+      <div class="section" id="budget-anlegen-section" style="display: none;">
+        <h2>Budget anlegen / bearbeiten</h2>
+        <div class="form-group">
+          <label for="pflegegrad-datum">Pflegegrad seit:</label>
+          <input type="date" id="pflegegrad-datum">
+        </div>
+        <div class="form-group">
+          <label for="budget-verbraucht">Wurde bereits Budget verbraucht?</label>
+          <select id="budget-verbraucht">
+            <option value="nein">Nein</option>
+            <option value="ja">Ja</option>
+          </select>
+        </div>
+        <div id="verbrauchtes-budget-container" style="display: none;">
+          <div class="form-group">
+            <label for="verbrauchtes-budget">Bereits verbrauchtes Budget (€):</label>
+            <input type="number" id="verbrauchtes-budget" step="0.01" min="0">
+          </div>
+        </div>
+        <button id="budget-anlegen-btn">Übernehmen</button>
+      </div>
+
+      <div class="section" id="budget-uebersicht-section">
+        <h2>Budgetübersicht</h2>
+
+        <div class="form-group">
+          <label for="jahr-auswahl">Jahr:</label>
+          <select id="jahr-auswahl">
+            <option value="2022">2022</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026">2026</option>
+          </select>
+          <label for="betrag-pro-monat">Betrag pro Monat:</label>
+          <input type="text" id="betrag-pro-monat" value="125,00" disabled>
+        </div>
+
+        <div class="form-group">
+          <label for="vortrag">Vortrag:</label>
+          <input type="text" id="vortrag" value="0,00">
+          <label for="verfuegbar-uebertrag">Verfügbar / Übertrag:</label>
+          <input type="text" id="verfuegbar-uebertrag" value="1428,00" disabled>
+        </div>
+
+        <div id="budget-tabelle-container">
+          <table id="budget-tabelle">
+            <thead>
+              <tr>
+                <th>Monat</th>
+                <th>Budget</th>
+                <th>Fremd</th>
+                <th>Eigene Rechnungen</th>
+                <th>Verfügbar</th>
+                <th>Privat</th>
+              </tr>
+            </thead>
+            <tbody id="budget-tabelle-body">
+              <!-- Gefüllt durch JavaScript -->
+            </tbody>
+            <tfoot>
+              <tr>
+                <th>Summe</th>
+                <td id="gesamt-budget">0,00 €</td>
+                <td id="gesamt-fremd">0,00 €</td>
+                <td id="gesamt-pflegekasse">0,00 €</td>
+                <td id="gesamt-verfuegbar">0,00 €</td>
+                <td id="gesamt-privat">0,00 €</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="form-group">
+          <label for="bemerkung">Bemerkung:</label>
+          <textarea id="bemerkung" rows="3"></textarea>
+        </div>
+
+        <div class="button-group">
+          <button id="zurueck-btn">Zurück</button>
+          <button id="weiter-btn">Weiter</button>
+          <button id="fertigstellen-btn">Fertigstellen</button>
+          <button id="abbrechen-btn">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(function (reg) {
+          console.log('Service Worker registriert:', reg.scope);
+        })
+        .catch(function (err) {
+          console.error('Service Worker Fehler:', err);
+        });
+    });
+  }
+</script>
+
+<script src="main.js"></script>
+<script>
+// Hier kannst du optional JS-Funktionen auslagern oder inline einfügen
+// Bei deiner Version liegt der gesamte JS-Code direkt im <script>-Block innerhalb index.html
+// Falls du möchtest, kann ich den JavaScript-Teil auch als separate Datei liefern
+</script>
+
+</body>
+</html>
